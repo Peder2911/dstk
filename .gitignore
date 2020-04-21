@@ -1,0 +1,7 @@
+
+*.py[cod]
+build/*
+dist/*
+dstk.egg-info/*
+*.swp
+

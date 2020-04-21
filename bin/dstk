@@ -1,0 +1,56 @@
+#! /usr/bin/env python
+from fire import Fire
+from dstk.util import obfuscate,applyToCsv
+from dstk.tidy import duplicatedUoaIndices 
+import pandas as pd
+import sys
+
+class DstkCli:
+    """
+    CLI class containing lots of useful functions that exposes
+    useful functionality from dstk
+    """
+    def obfuscate(self,infile,seed,outfile=None):
+        """
+        Obfuscate a dataframe, making it possible
+        to use sensitive / proprietary data for
+        testing purposes. Hashes all values and
+        column names together with a seed. 
+
+        Note that this does not preserve numerical
+        information, only the "identity" of each
+        value.
+        """
+        applyToCsv(obfuscate,infile,seed=seed)
+
+    def duplicatedUoa(self,infile,*indices):
+        """
+        Find duplicated units of analysis in a dataset that is assumed to
+        be tidy (meaning that it has one unit of analysis per row).  A
+        unit of analysis is defined by one or more index columns, that
+        must match the number of rows in the dataset.
+
+        Only keeps the columns that contain more than one unique value for
+        each uid.
+        """
+        #indices = indices.split(",")
+        def uoaErrors(df):
+            dups = duplicatedUoaIndices(df,indices)
+            if len(dups) != 0:
+                df = df.loc[dups]
+                df["uid"] = ["-".join([str(v) for v in r[list(indices)]]) for idx,r in df.iterrows()]
+
+                # Columns with values (for each uid) that are repeated.
+                # (offending values)
+                errorColumns = df.groupby("uid").aggregate(lambda x: x.nunique())
+                errorColumns = errorColumns.aggregate(lambda x: x.max()>1)
+                errorColumns = {i for i,v in zip(errorColumns.index,errorColumns.values) if v}
+
+                return df[errorColumns.union(("uid",))]
+            else:
+                return pd.DataFrame()
+
+        applyToCsv(uoaErrors,infile)
+
+if __name__ == "__main__": 
+    Fire(DstkCli)

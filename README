@@ -1,0 +1,7 @@
+
+This package contains helpful and useful functions for doing tidy
+data science.
+
+The functions are exposed through a CLI tool that thrives on the unix
+command-line, and plays very well with pipes.
+
